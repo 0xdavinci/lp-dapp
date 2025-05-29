@@ -97,7 +97,7 @@ const EventLog: React.FC<EventLogProps> = ({ className }) => {
         newProvider.removeAllListeners();
       };
     } catch (error) {
-      setError(`Failed to initialize WebSocket connection: ${error.message}`);
+      setError(`Failed to initialize WebSocket connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsWebSocketConnected(false);
     }
   }, [chainId, CONTRACT_ADDRESS]);
