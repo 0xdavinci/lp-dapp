@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import ReactPaginate from 'react-paginate';
-import { useAccount, useChainId } from 'wagmi';
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import ReactPaginate from "react-paginate";
+import { useAccount, useChainId } from "wagmi";
 
 interface InvestmentOutflowsProps {
   className?: string;
 }
 
-const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) => {
+const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({
+  className,
+}) => {
   const chainId = useChainId();
   const { address, isConnected } = useAccount();
   const [investments, setInvestments] = useState<any[]>([]);
@@ -29,11 +31,15 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
   // Fetch investment data
   const fetchInvestments = async () => {
     if (!isConnected) return;
-    
+
     setIsLoading(true);
     setError(null);
     try {
-      const fetchWithRetry = async (url: string, options: RequestInit, retries: number): Promise<Response> => {
+      const fetchWithRetry = async (
+        url: string,
+        options: RequestInit,
+        retries: number
+      ): Promise<Response> => {
         for (let i = 0; i < retries; i++) {
           try {
             const response = await fetch(url, options);
@@ -46,22 +52,26 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
               throw error;
             }
             console.warn(`Retrying fetch... (${i + 1}/${retries})`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+            await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
           }
         }
-        throw new Error('Max retries reached');
+        throw new Error("Max retries reached");
       };
 
-      const response = await fetchWithRetry(`/api/get-investments?chainId=${chainId}`, {}, 3);
+      const response = await fetchWithRetry(
+        `/api/get-investments?chainId=${chainId}`,
+        {},
+        3
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch investments");
       }
 
       const data = await response.json();
-      
+
       // Log the raw data for debugging
       console.log("Raw investment data:", data);
-      
+
       // Validate data structure
       if (!Array.isArray(data)) {
         throw new Error("Invalid response format");
@@ -69,7 +79,9 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
 
       const sortedData = data.sort((a: any, b: any) => {
         try {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         } catch (error) {
           console.error("Error sorting dates:", error);
           return 0;
@@ -77,26 +89,29 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
       });
 
       // Validate and transform required fields
-      const validData = sortedData.filter(item => {
+      const validData = sortedData.filter((item) => {
         try {
           // Transform expected_returns to number if it's a string
-          const expectedReturns = typeof item.expected_returns === 'string' 
-            ? parseFloat(item.expected_returns) 
-            : item.expected_returns;
+          const expectedReturns =
+            typeof item.expected_returns === "string"
+              ? parseFloat(item.expected_returns)
+              : item.expected_returns;
 
-          const isValid = item && 
-            typeof item.investment_name === 'string' &&
-            typeof item.amount === 'string' &&
-            !isNaN(expectedReturns) &&  // Check if it's a valid number
-            typeof item.social_impact_metric === 'string' &&
-            typeof item.expected_social_impact === 'string' &&
-            typeof item.units === 'string';
-          
+          const isValid =
+            item &&
+            typeof item.investment_name === "string" &&
+            typeof item.amount === "string" &&
+            !isNaN(expectedReturns) && // Check if it's a valid number
+            typeof item.social_impact_metric === "string" &&
+            // typeof item.expected_social_impact === 'string' &&
+            // typeof item.units === 'string';
+            typeof item.expected_social_impact === "string";
+
           if (!isValid) {
             console.warn("Invalid investment data:", {
               item,
               expectedReturns,
-              expectedReturnsType: typeof item.expected_returns
+              expectedReturnsType: typeof item.expected_returns,
             });
           }
           return isValid;
@@ -110,7 +125,10 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
       setInvestments(validData);
     } catch (error: any) {
       console.error("Error fetching investments:", error);
-      setError(error.message || "Failed to fetch investment data. Please try again later.");
+      setError(
+        error.message ||
+          "Failed to fetch investment data. Please try again later."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -149,15 +167,25 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
     const seconds = date.getSeconds();
 
     // Return the formatted string
-    return `${month}/${day}/${year} ${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${month}/${day}/${year} ${hours}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 
   return (
     <div className={`serviceBox ${className}`}>
       <div className="relative overflow-hidden rounded-t-lg p-4 flex items-center">
         <div className="flex items-center">
-          <Image src="/investment.png" width={16} height={16} alt="Investment Icon" className="mr-2" />
-          <h2 className="text-2xl font-bold text-[var(--foreground)]">Investment Outflows</h2>
+          <Image
+            src="/investment.png"
+            width={16}
+            height={16}
+            alt="Investment Icon"
+            className="mr-2"
+          />
+          <h2 className="text-2xl font-bold text-[var(--foreground)]">
+            Investment Outflows
+          </h2>
         </div>
       </div>
       <div className="p-4">
@@ -172,47 +200,91 @@ const InvestmentOutflows: React.FC<InvestmentOutflowsProps> = ({ className }) =>
           </div>
         )}
         {!isLoading && !error && displayedOutflows.length === 0 && (
-          <p className="text-center text-gray-400">No investment outflows found.</p>
+          <p className="text-center text-gray-400">
+            No investment outflows found.
+          </p>
         )}
         {displayedOutflows.map((outflow, index) => (
-          <div key={outflow.id} className={`flex flex-col py-2 ${index !== (displayedOutflows.length - 1) ? 'border-b border-[#2b4f88]' : ''}`}>
+          <div
+            key={outflow.id}
+            className={`flex flex-col py-2 ${
+              index !== displayedOutflows.length - 1
+                ? "border-b border-[#2b4f88]"
+                : ""
+            }`}
+          >
             <div className="flex justify-between items-center">
               <div>
-                <label className="font-bold text-[16px] text-[var(--foreground)]">{outflow.investment_name}</label>
-                <label className="block block-color">{convertDate(outflow.created_at)}</label>
+                <label className="font-bold text-[16px] text-[var(--foreground)]">
+                  {outflow.investment_name}
+                </label>
+                <label className="block block-color">
+                  {convertDate(outflow.created_at)}
+                </label>
               </div>
               <div className="text-right flex flex-col">
-                <label className="font-bold text-[var(--foreground)]">{outflow.amount} ETH</label>
-                <label className="text-[#02a46f] text-[14px]">Expected: {outflow.expected_returns}%</label>
+                <label className="font-bold text-[var(--foreground)]">
+                  {outflow.amount} ETH
+                </label>
+                <label className="text-[#02a46f] text-[14px]">
+                  Expected: {outflow.expected_returns}%
+                </label>
               </div>
             </div>
             <div className="flex items-center mt-2">
-              <Image src="/social-impact-orange.png" width={16} height={16} alt="Social Impact Icon" className="mr-2" />
-              <label className="text-[#d68122] text-[14px]">{outflow.social_impact_metric}: {outflow.expected_social_impact} {outflow.units}</label>
+              <Image
+                src="/social-impact-orange.png"
+                width={16}
+                height={16}
+                alt="Social Impact Icon"
+                className="mr-2"
+              />
+              <label className="text-[#d68122] text-[14px]">
+                {outflow.social_impact_metric}: {outflow.expected_social_impact}{" "}
+                {outflow.units}
+              </label>
             </div>
           </div>
         ))}
         <ReactPaginate
           previousLabel={
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M11.354 1.354a.5.5 0 0 1 0 .707L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fillRule="evenodd"
+                d="M11.354 1.354a.5.5 0 0 1 0 .707L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"
+              />
             </svg>
           }
           nextLabel={
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M4.646 14.354a.5.5 0 0 1 0-.708L10.293 8 4.646 2.354a.5.5 0 0 1 .708-.708l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.646 14.354a.5.5 0 0 1 0-.708L10.293 8 4.646 2.354a.5.5 0 0 1 .708-.708l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708 0z"
+              />
             </svg>
           }
           breakLabel={"..."}
           pageCount={pageCount}
           onPageChange={handlePageClick}
-          containerClassName={'flex justify-center space-x-2 mt-4'}
-          activeClassName={'currentPaginationButton'}
-          pageClassName={'paginationButton'}
-          previousClassName={'paginationButton'}
-          nextClassName={'paginationButton'}
-          disabledClassName={'paginationButton disabled:opacity-50'}
-          breakClassName={'paginationButton'}
+          containerClassName={"flex justify-center space-x-2 mt-4"}
+          activeClassName={"currentPaginationButton"}
+          pageClassName={"paginationButton"}
+          previousClassName={"paginationButton"}
+          nextClassName={"paginationButton"}
+          disabledClassName={"paginationButton disabled:opacity-50"}
+          breakClassName={"paginationButton"}
           renderOnZeroPageCount={() => null}
           pageRangeDisplayed={1}
           marginPagesDisplayed={1}
